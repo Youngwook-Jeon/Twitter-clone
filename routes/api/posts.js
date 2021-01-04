@@ -7,22 +7,24 @@ const Post = require('../../schemas/PostSchema');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
-router.get("/", (req, res, next) => {
-    Post.find()
-    .populate("postedBy")
-    .populate("retweetData")
-    .sort({ "createdAt": -1 })
-    .then(async (results) => {
-        results = await User.populate(results, { path: "retweetData.postedBy" })
-        res.status(200).send(results);
-    })
-    .catch((err) => {
-        console.log(err);
-        res.sendStatus(400);
-    });
+router.get("/", async (req, res, next) => {
+    let results = await getPosts({});
+    res.status(200).send(results);
+});
+
+router.get("/:id", async (req, res, next) => {
+    const postId = req.params.id;
+    let results = await getPosts({ _id: postId });
+    results = results[0];
+
+    res.status(200).send(results);
 });
 
 router.post("/", async (req, res, next) => {
+    if (req.body.replyTo) {
+        console.log(req.body.replyTo);
+        return res.sendStatus(400);
+    }
     if (!req.body.content) {
         console.log("Content param not sent with request");
         return res.sendStatus(400);
@@ -104,5 +106,17 @@ router.post("/:id/retweet", async (req, res, next) => {
 
     res.status(200).send(post);
 });
+
+async function getPosts(filter) {
+    let results = await Post.find(filter)
+    .populate("postedBy")
+    .populate("retweetData")
+    .sort({ "createdAt": -1 })
+    .catch((err) => {
+        console.log(err);
+        res.sendStatus(400);
+    });
+    return await User.populate(results, { path: "retweetData.postedBy" });
+}
 
 module.exports = router;
