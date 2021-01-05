@@ -29,10 +29,14 @@ $("#submitPostButton, #submitReplyButton").click(() => {
   }
 
   $.post("/api/posts", data, (postData) => {
-    var html = createPostHtml(postData);
-    $(".postsContainer").prepend(html);
-    textbox.val("");
-    button.prop("disabled", true);
+    if (postData.replyTo) {
+      location.reload();
+    } else {
+      var html = createPostHtml(postData);
+      $(".postsContainer").prepend(html);
+      textbox.val("");
+      button.prop("disabled", true);
+    }
   });
 });
 
@@ -43,7 +47,7 @@ $("#replyModal").on("show.bs.modal", (event) => {
   $("#submitReplyButton").data("id", postId);
 
   $.get("/api/posts/" + postId, results => {
-    outputPosts(results, $("#originalPostContainer"));
+    outputPosts(results.postData, $("#originalPostContainer"));
   });
 });
 
@@ -93,6 +97,15 @@ $(document).on("click", ".retweetButton", (event) => {
   });
 });
 
+$(document).on("click", ".post", (event) => {
+  var element = $(event.target);
+  var postId = getPostIdFromElement(element);
+
+  if (postId !== undefined && !element.is("button")) {
+    window.location.href = '/posts/' + postId;
+  }
+});
+
 function getPostIdFromElement(element) {
     var isRoot = element.hasClass("post");
     var rootElement = isRoot ? element : element.closest(".post");
@@ -126,6 +139,18 @@ function createPostHtml(postData) {
     </span>`
   }
 
+  var replyFlag = "";
+  if (postData.replyTo && postData.replyTo._id) {
+    if (!postData.replyTo._id) {
+      return alert("Reply to is not populated");
+    }
+
+    var replyToUsername = postData.replyTo.postedBy.username;
+    replyFlag = `<div class='replyFlag'>
+                  Replying to <a href='/profile/${replyToUsername}'>@${replyToUsername}</a>
+                </div>`
+  }
+
   return `<div class='post' data-id='${postData._id}'>
                 <div class='postActionContainer'>
                   ${retweetText}
@@ -140,6 +165,7 @@ function createPostHtml(postData) {
                             <span class='username'>@${postedBy.username}</span>
                             <span class='date'>${timestamp}</span>
                         </div>
+                        ${replyFlag}
                         <div class='postBody'>
                             <span>${postData.content}</span>
                         </div>
@@ -207,4 +233,21 @@ function outputPosts(results, container) {
   if (results.length === 0) {
       container.append("<span class='noResults'>Nothing to show.</span>");
   }
+}
+
+function outputPostsWithReplies(results, container) {
+  container.html("");
+
+  if (results.replyTo !== undefined && results.replyTo._id !== undefined) {
+    var html = createPostHtml(results.replyTo);
+    container.append(html);
+  }
+
+  var mainPostHtml = createPostHtml(results.postData);
+  container.append(mainPostHtml);
+
+  results.replies.forEach(result => {
+    var html = createPostHtml(result);
+    container.append(html);
+  });
 }
