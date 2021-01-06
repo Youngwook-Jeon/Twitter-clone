@@ -55,6 +55,31 @@ $("#replyModal").on("hidden.bs.modal", () => {
   $("#originalPostContainer").html("");
 });
 
+$("#deletePostModal").on("show.bs.modal", (event) => {
+  var button = $(event.relatedTarget);
+  var postId = getPostIdFromElement(button);
+
+  $("#deletePostButton").data("id", postId);
+});
+
+$("#deletePostButton").click((event) => {
+  var postId = $(event.target).data("id");
+
+  $.ajax({
+    url: `/api/posts/${postId}`,
+    type: "DELETE",
+    success: (data, status, xhr) => {
+      
+      if (xhr.status != 202) {
+        alert("could not delete the post");
+        return;
+      }
+
+      location.reload();
+    }
+  });
+});
+
 $(document).on("click", ".likeButton", (event) => {
     var button = $(event.target);
     var postId = getPostIdFromElement(button);
@@ -116,7 +141,7 @@ function getPostIdFromElement(element) {
     return postId;
 }
 
-function createPostHtml(postData) {
+function createPostHtml(postData, largeFont = false) {
   var isRetweet = postData.retweetData !== undefined;
   var retweetedBy = isRetweet ? postData.postedBy.username : null;
   postData = isRetweet ? postData.retweetData : postData;
@@ -129,6 +154,7 @@ function createPostHtml(postData) {
   var timestamp = timeDifference(new Date(), new Date(postData.createdAt));
   var likeButtonActiveClass = postData.likes.includes(userLoggedIn._id) ? "active" : "";
   var retweetButtonActiveClass = postData.retweetUsers.includes(userLoggedIn._id) ? "active" : "";
+  var largeFontClass = largeFont ? "largeFont" : "";
 
   var retweetText = '';
   if (isRetweet) {
@@ -151,7 +177,12 @@ function createPostHtml(postData) {
                 </div>`
   }
 
-  return `<div class='post' data-id='${postData._id}'>
+  var buttons = "";
+  if (postData.postedBy._id === userLoggedIn._id) {
+    buttons = `<button data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class='fas fa-times'></i></button>`;
+  }
+
+  return `<div class='post ${largeFontClass}' data-id='${postData._id}'>
                 <div class='postActionContainer'>
                   ${retweetText}
                 </div>
@@ -164,6 +195,7 @@ function createPostHtml(postData) {
                             <a href='/profile/${postedBy.username}' class='displayName'>${displayName}</a>
                             <span class='username'>@${postedBy.username}</span>
                             <span class='date'>${timestamp}</span>
+                            ${buttons}
                         </div>
                         ${replyFlag}
                         <div class='postBody'>
@@ -243,7 +275,7 @@ function outputPostsWithReplies(results, container) {
     container.append(html);
   }
 
-  var mainPostHtml = createPostHtml(results.postData);
+  var mainPostHtml = createPostHtml(results.postData, true);
   container.append(mainPostHtml);
 
   results.replies.forEach(result => {
