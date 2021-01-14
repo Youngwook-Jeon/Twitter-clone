@@ -8,7 +8,17 @@ const Post = require("../../schemas/PostSchema");
 app.use(bodyParser.urlencoded({ extended: false }));
 
 router.get("/", async (req, res, next) => {
-  let results = await getPosts({});
+  let searchObj = req.query;
+  let isReply;
+
+  if (searchObj.isReply !== undefined) {
+    isReply = searchObj.isReply === "true";
+    searchObj.replyTo = { $exists: isReply }; // if isReply is false => we show all posts not replies
+    delete searchObj.isReply;
+    console.log(searchObj);
+  }
+
+  let results = await getPosts(searchObj);
   res.status(200).send(results);
 });
 
