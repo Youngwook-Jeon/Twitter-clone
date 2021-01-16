@@ -15,7 +15,6 @@ router.get("/", async (req, res, next) => {
     isReply = searchObj.isReply === "true";
     searchObj.replyTo = { $exists: isReply }; // if isReply is false => we show all posts not replies
     delete searchObj.isReply;
-    console.log(searchObj);
   }
 
   let results = await getPosts(searchObj);
