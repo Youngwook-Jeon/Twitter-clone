@@ -9,12 +9,31 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 router.get("/", async (req, res, next) => {
   let searchObj = req.query;
-  let isReply;
 
   if (searchObj.isReply !== undefined) {
-    isReply = searchObj.isReply === "true";
+    let isReply = searchObj.isReply === "true";
     searchObj.replyTo = { $exists: isReply }; // if isReply is false => we show all posts not replies
     delete searchObj.isReply;
+  }
+
+  if (searchObj.followingOnly !== undefined) {
+    let followingOnly = searchObj.followingOnly === "true";
+
+    if (followingOnly) {
+      let objectIds = [];
+
+      if (req.session.user.following) {
+        req.session.user.following = [];
+      }
+      req.session.user.following.forEach(user => {
+        objectIds.push(user);
+      });
+      
+      objectIds.push(req.session.user._id);
+      searchObj.postedBy = { $in: objectIds };
+    }
+
+    delete searchObj.followingOnly;
   }
 
   let results = await getPosts(searchObj);
