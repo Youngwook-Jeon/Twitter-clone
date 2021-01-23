@@ -11,18 +11,23 @@ router.get("/", async (req, res, next) => {
   let searchObj = req.query;
 
   if (searchObj.isReply !== undefined) {
-    let isReply = searchObj.isReply === "true";
+    let isReply = searchObj.isReply == "true";
     searchObj.replyTo = { $exists: isReply }; // if isReply is false => we show all posts not replies
     delete searchObj.isReply;
   }
 
+  if (searchObj.search !== undefined) {
+    searchObj.content = { $regex: searchObj.search, $options: "i" } // case insensitive
+    delete searchObj.search;
+  }
+
   if (searchObj.followingOnly !== undefined) {
-    let followingOnly = searchObj.followingOnly === "true";
+    let followingOnly = searchObj.followingOnly == "true";
 
     if (followingOnly) {
       let objectIds = [];
 
-      if (req.session.user.following) {
+      if (!req.session.user.following) {
         req.session.user.following = [];
       }
       req.session.user.following.forEach((user) => {

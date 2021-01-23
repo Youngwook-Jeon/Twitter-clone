@@ -5,8 +5,8 @@ block content
         i.fas.fa-search
         input#searchBox(type="text", name="searchBox", data-search=selectedTab, placeholder="search for users or posts")
     .tabContainer
-        +createTab("Posts", `/search/posts`, selectedTab !== "users")
-        +createTab("Users", `/search/users`, selectedTab === "users")
+        +createTab("Posts", `/search/posts`, selectedTab != "users")
+        +createTab("Users", `/search/users`, selectedTab == "users")
     
     .resultsContainer
 
